@@ -1,0 +1,49 @@
+#!/bin/bash
+
+if [ ! -e "$HOME/.mpv-pl" ]; then
+
+printf "\nChose directory where you store your videos...\n"
+
+dirlist=$(find $HOME -maxdepth 1 \( ! -regex '.*/\..*' \) -type d)
+
+	select MPV_DIR in $dirlist;
+		do
+			case "$REPLY" in
+				*[1-9]*)
+					echo "You selelcted the $MPV_DIR directory ($REPLY)"
+					touch $HOME/.mpv-pl
+					echo "$MPV_DIR" >> $HOME/.mpv-pl
+					break
+				;;
+				*)
+					echo "Select a valid option"; continue ;;
+			esac
+		done
+fi
+
+echo
+
+cd $(cat $HOME/.mpv-pl)
+printf "loading... "
+videolist=$(find . -maxdepth 2 \( ! -regex '.*/\..*' \) -type f -print0 | xargs -0 file -iNf - | grep video | cut -d: -f1 | sort | sed 's/^\.\///')
+echo "Select which file to play..."
+echo
+
+old_ifs=${IFS}
+IFS=$'
+'
+quit_mpv="Quit Mpv-pl with a [qQ]..."
+
+select OPT in $videolist $quit_mpv; #$(ls|colout '.*' blue);
+	do
+		case "$REPLY" in
+			*[1-9]*)
+				echo "Du valde $(basename $OPT | colout '.*' blue) ($REPLY)"
+				[ -e $OPT ] && mpv --msglevel=all=no $OPT || echo "File can not be found"; continue ;;
+			[qQ]) break ;;
+			*)
+				echo "Välj ett befintligt nummer"; continue ;;
+		esac
+	done
+
+IFS=${old_ifs}
