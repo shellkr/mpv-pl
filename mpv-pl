@@ -16,7 +16,7 @@ dirlist=$(find $HOME -maxdepth 1 \( ! -regex '.*/\..*' \) -type d)
 					break
 				;;
 				*)
-					echo "Select a valid option"; continue ;;
+					echo "Select a valid option..."; continue ;;
 			esac
 		done
 fi
@@ -25,25 +25,31 @@ echo
 
 cd $(cat $HOME/.mpv-pl)
 printf "loading... "
-videolist=$(find . -maxdepth 2 \( ! -regex '.*/\..*' \) -type f -print0 | xargs -0 file -iNf - | grep video | cut -d: -f1 | sort | sed 's/^\.\///')
+videolist=$(find . -maxdepth 2 \( ! -regex '.*/\..*' \) -type f -print0 | xargs -0 file --mime-type - | grep video | cut -d: -f1 | sort | sed 's/^\.\///')
 echo "Select which file to play..."
 echo
+
+videolister=$(awk '{FS="...TV"} {print $1}' <<<"$videolist" | sed 's/[\._]/ /g' | colout '(.*) (.*?[0-9].?.*)' red,white)
 
 old_ifs=${IFS}
 IFS=$'
 '
 quit_mpv="Quit Mpv-pl with a [qQ]..."
 
-select OPT in $videolist $quit_mpv; #$(ls|colout '.*' blue);
+select OPT in $videolister $quit_mpv;
 	do
 		case "$REPLY" in
 			*[1-9]*)
-				echo "Du valde $(basename $OPT | colout '.*' blue) ($REPLY)"
-				[ -e $OPT ] && mpv --msglevel=all=no $OPT || echo "File can not be found"; continue ;;
+				echo "($REPLY) Du valde $(basename $OPT | colout '.*' blue) "
+				decolor=$(sed "s,\x1B\[[0-9;]*[a-zA-Z],,g" <<<"$OPT")
+				opt_val=$(sed 's/ /\.\*/g' <<<"$decolor")
+				vidfile=$(grep ".*$opt_val.*" <<<"$videolist")
+				[ -e $vidfile ] && mpv --msglevel=all=no $vidfile > /dev/null 2>&1|| echo "File can not be found"; continue ;;
 			[qQ]) break ;;
 			*)
-				echo "Välj ett befintligt nummer"; continue ;;
+				echo "Select a valid option..."; continue ;;
 		esac
 	done
 
 IFS=${old_ifs}
+
